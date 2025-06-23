@@ -1,0 +1,71 @@
+################################################################################
+# Vdbench configuration for testing MAXIMUM SAN PERFORMANCE (IOPS and Bandwidth)
+# Designed for multiple slaves hitting one or more shared LUNs.
+#
+################################################################################
+
+
+# ========================================================================
+# == HOST DEFINITIONS
+# ========================================================================
+# Instructions:
+# - Add one 'hd=' line for each slave VM you want to use for the test.
+# - Replace 'slaveX-hostname' with the real hostname or IP address.
+hd=default,vdbench=/opt/vdbench,user=root,shell=ssh
+
+hd=slave1,system=slave1-hostname-or-ip,master=master-hostname-or-ip,vdbench=/root/vdbench,user=root,shell=ssh
+hd=slave2,system=slave2-hostname-or-ip,master=master-hostname-or-ip,vdbench=/root/vdbench,user=root,shell=ssh
+# hd=slave3,system=slave3-hostname-or-ip  << Add more slaves here
+# hd=slave4,system=slave4-hostname-or-ip  << following the same pattern.
+
+
+# ========================================================================
+# == STORAGE DEFINITIONS (SD)
+# ========================================================================
+# WARNING: Vdbench will write to these raw devices and DESTROY ALL DATA.
+#          Ensure these LUNs are dedicated for testing.
+#
+# Instructions:
+# - Define each SAN LUN you want to test.
+# - Use the 'host=(slave1,slave2,...)' parameter to tell Vdbench that this
+#   LUN is visible to all of your slaves. LIST ALL SLAVES YOU DEFINED ABOVE.
+# - Use a descriptive name for the sd (e.g., 'sd_lun0', 'sd_lun1').
+# - The 'lun=' parameter should point to the raw device path on the slaves.
+#   In a SAN environment, this is often a multipath device.
+
+sd=sd_lun0,lun=/dev/mapper/mpatha,host=(slave1,slave2),threads=256
+# sd=sd_lun1,lun=/dev/mapper/mpathb,host=(slave1,slave2),threads=256
+
+
+# ========================================================================
+# == WORKLOAD DEFINITIONS (WD)
+# ========================================================================
+# These workloads automatically apply to ALL storage definitions (sd=sd_*)
+# You do not need to edit this section.
+
+# -- Workload for Maximum IOPS Test --
+# 4k block size, 70/30 Read/Write mix, Random I/O
+wd=wd_iops,sd=sd_*,xfersize=4k,rdpct=70,seekpct=random
+
+# -- Workload for Maximum Bandwidth Test --
+# 1M block size, 100% Read, Sequential I/O
+wd=wd_bw,sd=sd_*,xfersize=1m,rdpct=100,seekpct=sequential
+
+
+# ========================================================================
+# == RUN DEFINITIONS (RD)
+# ========================================================================
+# Instructions:
+# - Uncomment ONLY ONE of the 'rd=' blocks below to choose your test (you can 
+#   actually uncomment both if you want to run them in sequence).
+# - The 'threads=' parameter sets the TOTAL concurrent operations for the
+#   entire test. Vdbench automatically divides this number among your slaves.
+#   (e.g., threads=512 with 4 slaves means each slave runs 128 threads).
+
+# --- Run Definition for Maximum IOPS ---
+# Uses a very high thread count to saturate the SAN with operations.
+rd=rd_max_iops,wd=wd_iops,iorate=max,threads=512,elapsed=300,interval=1,warmup=30
+
+# --- Run Definition for Maximum Bandwidth ---
+# Uses a more moderate thread count, as the bottleneck is throughput, not operations.
+# rd=rd_max_bw,wd=wd_bw,iorate=max,threads=128,elapsed=300,interval=1,warmup=30
