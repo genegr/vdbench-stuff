@@ -1,0 +1,49 @@
+* Vdbench file-based workload configuration
+* Multiple small files, 50 parallel tasks, 10% reads, 90% writes, 128k blocks
+
+* Host definitions for multiple slaves
+hd=default,vdbench=/home/user/vdbench,user=root
+hd=slave1,system=10.225.113.196,master=10.225.113.197,vdbench=/root/vdbench,user=root,shell=ssh
+hd=slave2,system=10.225.113.130,master=10.225.113.197,vdbench=/root/vdbench,user=root,shell=ssh
+
+* File system definitions - each host gets its own FSD
+fsd=fsd1,anchor=/mnt/testfs1,depth=3,width=10,files=1000,size=10m
+fsd=fsd2,anchor=/mnt/testfs2,depth=3,width=10,files=1000,size=10m
+
+* File workload definitions
+* Directory creation workloads - create directory structure first
+fwd=fwd_mkdir1,fsd=fsd1,host=slave1,operation=mkdir,threads=1
+fwd=fwd_mkdir2,fsd=fsd2,host=slave2,operation=mkdir,threads=1
+
+* File creation workloads - create files after directories exist
+fwd=fwd_create1,fsd=fsd1,host=slave1,operation=create,threads=4
+fwd=fwd_create2,fsd=fsd2,host=slave2,operation=create,threads=4
+
+* File population workloads - write data to fill files to their specified size
+fwd=fwd_populate1,fsd=fsd1,host=slave1,operation=write,xfersize=128k,fileio=sequential,fileselect=sequential,threads=8
+fwd=fwd_populate2,fsd=fsd2,host=slave2,operation=write,xfersize=128k,fileio=sequential,fileselect=sequential,threads=8
+
+* Main I/O workloads
+* We create separate workloads for read and write and run them concurrently.
+* The 90/10 split is achieved by allocating threads accordingly.
+
+# Host 1 workloads (3 read threads, 22 write threads)
+fwd=fwd_seq_read1,fsd=fsd1,host=slave1,operation=read,xfersize=128k,fileio=sequential,fileselect=sequential,threads=3
+fwd=fwd_seq_write1,fsd=fsd1,host=slave1,operation=write,xfersize=128k,fileio=sequential,fileselect=sequential,threads=22
+
+# Host 2 workloads (2 read threads, 23 write threads)
+fwd=fwd_seq_read2,fsd=fsd2,host=slave2,operation=read,xfersize=128k,fileio=sequential,fileselect=sequential,threads=2
+fwd=fwd_seq_write2,fsd=fsd2,host=slave2,operation=write,xfersize=128k,fileio=sequential,fileselect=sequential,threads=23
+
+# Run definitions
+# Phase 1: Create directory structure
+rd=rd_create_dirs,fwd=(fwd_mkdir1,fwd_mkdir2),fwdrate=max,elapsed=30,interval=1
+
+# Phase 2: Create all files
+rd=rd_create_files,fwd=(fwd_create1,fwd_create2),fwdrate=max,elapsed=60,interval=1
+
+# Phase 3: Populate files with data to reach their full size
+rd=rd_populate_files,fwd=(fwd_populate1,fwd_populate2),fwdrate=max,elapsed=120,interval=1
+
+# Phase 4: Run the actual I/O workload
+rd=rd_file_concurrent,fwd=(fwd_seq_read1,fwd_seq_write1,fwd_seq_read2,fwd_seq_write2),fwdrate=max,elapsed=300,interval=1
