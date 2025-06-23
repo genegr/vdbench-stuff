@@ -1,0 +1,32 @@
+* VDBench Configuration for simulating Prometheus+Grafana workloads (Read/Write) Benchmark
+* Host 1: Sequential Writes @ 4k block size
+* Host 2: Sequential Reads @ 16k block size
+
+* ======================== Host Definitions (HD) ===========================
+* Define the 3 hosts. One will be the master that controls the test.
+* The master can also run a workload
+*
+*
+hd=default,vdbench=/home/user/vdbench,user=root
+hd=slave1,system=10.225.113.196,master=10.225.113.197,vdbench=/root/vdbench,user=root,shell=ssh
+hd=slave2,system=10.225.113.130,master=10.225.113.197,vdbench=/root/vdbench,user=root,shell=ssh
+
+* ====================== Storage Definitions (SD) ==========================
+* Define the storage for each host.
+*
+sd=sd_writer,host=slave1,lun=/dev/sdb,threads=16,openflags=o_direct
+sd=sd_reader,host=slave2,lun=/dev/sdb,threads=16,openflags=o_direct
+
+* ====================== Workload Definitions (WD) =========================
+* Define the specific workload for each host.
+
+* Workload for the writer host: 100% sequential writes, 4k block size.
+wd=wd_writer,host=slave1,sd=sd_writer,seekpct=0,rdpct=0,xfersize=4k
+
+* Workload for the reader host: 100% sequential reads, 16k block size.
+wd=wd_reader,host=slave2,sd=sd_reader,seekpct=0,rdpct=100,xfersize=16k
+
+* ======================= Run Definition (RD) ============================
+* Define a single run that executes both workloads concurrently.
+*
+rd=rd1,wd=(wd_writer,wd_reader),iorate=max,elapsed=500,interval=5
