@@ -1,0 +1,32 @@
+* HD (Host Definition)
+* We define the master and the two slaves.
+*
+hd=default,vdbench=/home/user/vdbench,user=root
+hd=slave1,system=10.225.113.196,master=10.225.113.197,vdbench=/root/vdbench,user=root,shell=ssh
+hd=slave2,system=10.225.113.130,master=10.225.113.197,vdbench=/root/vdbench,user=root,shell=ssh
+
+* SD (Storage Definition)
+* We define the LUNs/disks to be tested.
+* Make sure the path in 'lun=' is correct for each slave.
+* It can be a raw disk (e.g., /dev/sdb) or a file on a filesystem.
+* 'openflags=o_direct' is recommended to bypass the OS cache
+* and measure the true performance of the disk.
+sd=sd1,host=slave1,lun=/dev/sdb,threads=32,openflags=o_direct
+sd=sd2,host=slave2,lun=/dev/sdb,threads=32,openflags=o_direct
+
+* WD (Workload Definition)
+* We define the workload profile.
+* sd=(sd*): Apply this workload to all defined storage definitions (SDs).
+* xfersize=8k: 8 KB block size.
+* rdpct=80: 80% of the operations will be reads (the remaining 20% will be writes).
+* seekpct=random: I/O operations will be random.
+wd=wd_rand_80read,sd=(sd*),xfersize=8k,rdpct=80,seekpct=random
+
+* RD (Run Definition)
+* We define the duration and execution parameters for the test.
+* wd=wd_rand_80read: Specifies which workload to use.
+* iorate=max: Run at the maximum possible IOPS. Alternatively, you can set a fixed rate (e.g., iorate=10000).
+* warmup=30: Run a 30-second warm-up before measurements begin.
+* elapsed=300: Actual duration of the test in seconds (here, 5 minutes).
+* interval=1: Report statistics every 1 second.
+rd=run1,wd=wd_rand_80read,iorate=max,warmup=30,elapsed=300,interval=5
