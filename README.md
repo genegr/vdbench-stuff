@@ -1,2 +1,3 @@
 # vdbench-stuff
-vdbench configurations
+
+vdbench configurations for various workloads simulation.
