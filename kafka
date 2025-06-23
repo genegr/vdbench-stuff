@@ -1,0 +1,44 @@
+* Vdbench multi-slave configuration
+* Slave 1: Random bursty reads (64k blocks)
+* Slave 2: Sequential writes (32k blocks)
+
+* Host definitions for multiple slaves
+hd=default,vdbench=/home/user/vdbench,user=root
+hd=slave1,system=10.225.113.196,master=10.225.113.197,vdbench=/root/vdbench,user=root,shell=ssh
+hd=slave2,system=10.225.113.130,master=10.225.113.197,vdbench=/root/vdbench,user=root,shell=ssh
+
+* Storage definitions
+sd=sd_read,host=slave1,lun=/dev/sdb,openflags=o_direct
+sd=sd_write,host=slave2,lun=/dev/sdb,openflags=o_direct
+
+* Workload definitions
+* Bursty random read workload (64k blocks)
+wd=wd_burst_read,sd=sd_read,rdpct=100,seekpct=100,xfersize=64k
+
+* Sequential write workload (32k blocks) - continuous
+wd=wd_seq_write,sd=sd_write,rdpct=0,seekpct=0,xfersize=32k
+
+* Workload for pause periods (minimal I/O to keep connection alive)
+wd=wd_pause,sd=sd_read,rdpct=100,seekpct=100,xfersize=4k
+
+* Run definitions creating bursty pattern with start/stop cycles
+* Burst 1: High intensity reads + continuous writes
+rd=rd_burst1,wd=(wd_burst_read,wd_seq_write),iorate=(2000,500),elapsed=30,interval=1,threads=8
+
+* Pause 1: Minimal reads + continuous writes  
+rd=rd_pause1,wd=(wd_pause,wd_seq_write),iorate=(10,500),elapsed=20,interval=1,threads=4
+
+* Burst 2: High intensity reads + continuous writes
+rd=rd_burst2,wd=(wd_burst_read,wd_seq_write),iorate=(1500,500),elapsed=45,interval=1,threads=8
+
+* Pause 2: Minimal reads + continuous writes
+rd=rd_pause2,wd=(wd_pause,wd_seq_write),iorate=(5,500),elapsed=30,interval=1,threads=4
+
+* Burst 3: Very high intensity reads + continuous writes
+rd=rd_burst3,wd=(wd_burst_read,wd_seq_write),iorate=(3000,500),elapsed=25,interval=1,threads=8
+
+* Pause 3: Minimal reads + continuous writes
+rd=rd_pause3,wd=(wd_pause,wd_seq_write),iorate=(10,500),elapsed=25,interval=1,threads=4
+
+* Final burst: Maximum intensity reads + continuous writes
+rd=rd_burst4,wd=(wd_burst_read,wd_seq_write),iorate=(max,500),elapsed=40,interval=1,threads=8
